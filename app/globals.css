@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --col-blue: #273d83;
+  --col-blue-2: #1f3170;
+  --col-cyan: #0d8eea;
+  --col-yellow: #ffd331;
+}
+
+* { box-sizing: border-box; }
+html { min-height: 100%; background: #1f3170; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'Montserrat', Arial, sans-serif;
+  color: #fff;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(255,255,255,.11) 0 2px, transparent 3px),
+    radial-gradient(circle at 86% 22%, rgba(255,255,255,.08) 0 44px, transparent 45px),
+    linear-gradient(135deg, var(--col-blue), var(--col-blue-2));
+}
+button, input, select, textarea { font: inherit; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible {
+  outline: 3px solid rgba(255, 211, 49, .9);
+  outline-offset: 2px;
+}
+
+.colacteos-input {
+  display: block;
+  width: 100%;
+  min-height: 46px;
+  margin-top: 7px;
+  border: 1px solid #d7dde8;
+  border-radius: 9px;
+  background: #fff;
+  color: #173462;
+  padding: 10px 14px;
+}
+
+.colacteos-input[readonly] {
+  background: #f4f7fb;
+  font-weight: 600;
+}
+
+.colacteos-invalid {
+  border-color: #ff8192 !important;
+  box-shadow: 0 0 0 2px rgba(255,129,146,.2) !important;
+}
+
+.colacteos-map-marker {
+  background: transparent !important;
+  border: 0 !important;
+}
+.colacteos-map-marker span {
+  display: block;
+  width: 28px;
+  height: 28px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: #e52d4f;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 7px rgba(0,0,0,.35);
+}
+.leaflet-control-attribution { font-size: 10px !important; }
+
+.c-thanks {
+  background: #293d7c url('/fondo.png') center center / cover no-repeat;
+}
