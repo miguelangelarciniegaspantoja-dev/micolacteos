@@ -1,704 +1,851 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { getSupabaseBrowserClient } from '@/lib/supabaseBrowser';
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+
+import {
+  getSupabaseBrowserClient,
+} from '@/lib/supabaseBrowser';
 
 export default function AdminDashboard() {
-  const [session, setSession] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [
+    session,
+    setSession,
+  ] = useState(null);
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [message, setMessage] = useState('');
+  const [
+    isAdmin,
+    setIsAdmin,
+  ] = useState(false);
 
-  const [rows, setRows] = useState([]);
-  const [search, setSearch] = useState('');
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
 
-  const supabase = getSupabaseBrowserClient();
+  const [
+    email,
+    setEmail,
+  ] = useState('');
 
-  /**
-   * Comprueba la sesión actual de Supabase cuando
-   * se carga el panel administrativo.
-   */
+  const [
+    password,
+    setPassword,
+  ] = useState('');
+
+  const [
+    message,
+    setMessage,
+  ] = useState('');
+
+  const [
+    rows,
+    setRows,
+  ] = useState([]);
+
+  const [
+    search,
+    setSearch,
+  ] = useState('');
+
+  const supabase =
+    getSupabaseBrowserClient();
+
   useEffect(() => {
     if (!supabase) {
       setMessage(
-        'Configura NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.'
+        'Configura NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.',
       );
-      setLoading(false);
+
+      setLoading(
+        false,
+      );
+
       return;
     }
 
-    let active = true;
+    let active =
+      true;
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
+    supabase.auth
+      .getSession()
+      .then(
+        ({
+          data,
+        }) => {
+          if (!active) {
+            return;
+          }
 
-      setSession(data.session);
+          setSession(
+            data.session,
+          );
 
-      if (data.session) {
-        verifyAdmin(data.session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
+          if (
+            data.session
+          ) {
+            verifyAdmin(
+              data.session
+                .user
+                .id,
+            );
+          } else {
+            setLoading(
+              false,
+            );
+          }
+        },
+      );
 
-    /**
-     * Escucha cambios de autenticación.
-     */
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, nextSession) => {
-        setSession(nextSession);
+    const {
+      data: listener,
+    } =
+      supabase.auth
+        .onAuthStateChange(
+          (
+            _event,
+            nextSession,
+          ) => {
+            setSession(
+              nextSession,
+            );
 
-        if (nextSession) {
-          verifyAdmin(nextSession.user.id);
-        } else {
-          setIsAdmin(false);
-          setRows([]);
-          setLoading(false);
-        }
-      }
-    );
+            if (
+              nextSession
+            ) {
+              verifyAdmin(
+                nextSession
+                  .user
+                  .id,
+              );
+            } else {
+              setIsAdmin(
+                false,
+              );
+
+              setRows([]);
+
+              setLoading(
+                false,
+              );
+            }
+          },
+        );
 
     return () => {
-      active = false;
-      listener.subscription.unsubscribe();
+      active =
+        false;
+
+      listener
+        .subscription
+        .unsubscribe();
     };
   }, []);
 
   /**
-   * Comprueba que el usuario autenticado exista
-   * dentro de la tabla app_admins.
+   * Verificar que el usuario
+   * pertenezca a app_admins.
    */
-  async function verifyAdmin(userId) {
-    setLoading(true);
+  async function verifyAdmin(
+    userId,
+  ) {
+    setLoading(
+      true,
+    );
 
-    const { data, error } = await supabase
-      .from('app_admins')
-      .select('user_id')
-      .eq('user_id', userId)
-      .maybeSingle();
+    const {
+      data,
+      error,
+    } =
+      await supabase
+        .from(
+          'app_admins',
+        )
+        .select(
+          'user_id',
+        )
+        .eq(
+          'user_id',
+          userId,
+        )
+        .maybeSingle();
 
-    if (error || !data) {
-      setIsAdmin(false);
-
-      setMessage(
-        'La cuenta inició sesión, pero no tiene permisos de administrador.'
+    if (
+      error ||
+      !data
+    ) {
+      setIsAdmin(
+        false,
       );
 
-      setLoading(false);
+      setMessage(
+        'La cuenta inició sesión, pero no tiene permisos de administrador.',
+      );
+
+      setLoading(
+        false,
+      );
+
       return;
     }
 
-    setIsAdmin(true);
+    setIsAdmin(
+      true,
+    );
+
     setMessage('');
 
     await loadRows();
   }
 
   /**
-   * Obtiene todos los registros almacenados
-   * en benefit_registrations.
-   *
-   * Se utiliza paginación de 1000 registros
-   * para evitar el límite habitual de Supabase.
+   * Cargar todos los registros.
    */
   async function loadRows() {
-    setLoading(true);
+    setLoading(
+      true,
+    );
+
     setMessage('');
 
-    const pageSize = 1000;
-    const allRows = [];
+    const pageSize =
+      1000;
 
-    try {
-      for (let from = 0; ; from += pageSize) {
-        const { data, error } = await supabase
-          .from('benefit_registrations')
+    const allRows =
+      [];
+
+    for (
+      let from = 0;
+      ;
+      from +=
+        pageSize
+    ) {
+      const {
+        data,
+        error,
+      } =
+        await supabase
+          .from(
+            'benefit_registrations',
+          )
           .select('*')
-          .order('created_at', {
-            ascending: false,
-          })
-          .range(from, from + pageSize - 1);
+          .order(
+            'created_at',
+            {
+              ascending:
+                false,
+            },
+          )
+          .range(
+            from,
+            from +
+              pageSize -
+              1,
+          );
 
-        if (error) {
-          throw error;
-        }
+      if (error) {
+        setMessage(
+          `No fue posible cargar los registros: ${error.message}`,
+        );
 
-        allRows.push(...(data || []));
+        setLoading(
+          false,
+        );
 
-        /**
-         * Cuando Supabase devuelve menos registros
-         * que el tamaño de página significa que
-         * ya llegamos al final.
-         */
-        if (!data || data.length < pageSize) {
-          break;
-        }
+        return;
       }
 
-      setRows(allRows);
-    } catch (error) {
-      console.error('Error loading registrations:', error);
-
-      setMessage(
-        `No fue posible cargar los registros: ${
-          error?.message || 'Error desconocido'
-        }`
+      allRows.push(
+        ...(
+          data ||
+          []
+        ),
       );
-    } finally {
-      setLoading(false);
+
+      if (
+        !data ||
+        data.length <
+          pageSize
+      ) {
+        break;
+      }
     }
+
+    setRows(
+      allRows,
+    );
+
+    setLoading(
+      false,
+    );
   }
 
   /**
-   * Inicia sesión usando Supabase Auth.
+   * Login.
    */
-  async function signIn(event) {
+  async function signIn(
+    event,
+  ) {
     event.preventDefault();
 
     if (!supabase) {
       setMessage(
-        'Configura NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.'
+        'Configura NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.',
       );
 
       return;
     }
 
-    setLoading(true);
+    setLoading(
+      true,
+    );
+
     setMessage('');
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const {
+      error,
+    } =
+      await supabase
+        .auth
+        .signInWithPassword({
+          email,
+          password,
+        });
 
     if (error) {
-      console.error('Admin login error:', error);
+      setMessage(
+        'Correo o contraseña incorrectos.',
+      );
 
-      setMessage('Correo o contraseña incorrectos.');
-      setLoading(false);
+      setLoading(
+        false,
+      );
     }
   }
 
   /**
-   * Cierra la sesión administrativa.
+   * Logout.
    */
   async function signOut() {
-    if (!supabase) return;
-
-    await supabase.auth.signOut();
-
-    setSession(null);
-    setIsAdmin(false);
-    setRows([]);
-    setEmail('');
-    setPassword('');
-    setMessage('');
+    await supabase
+      .auth
+      .signOut();
   }
 
   /**
-   * Filtra los registros mostrados en el panel.
+   * Buscador.
    */
-  const filtered = useMemo(() => {
-    const query = search.trim().toLowerCase();
+  const filtered =
+    useMemo(() => {
+      const query =
+        search
+          .trim()
+          .toLowerCase();
 
-    if (!query) {
-      return rows;
-    }
+      if (!query) {
+        return rows;
+      }
 
-    return rows.filter((row) =>
-      [
-        row.full_name,
-        row.document_number,
-        row.phone,
-        row.email,
-        row.place_name,
-        row.division_name,
-        row.full_address,
-      ].some((value) =>
-        String(value || '')
-          .toLowerCase()
-          .includes(query)
-      )
-    );
-  }, [rows, search]);
+      return rows.filter(
+        (row) =>
+          [
+            row.full_name,
+            row.document_number,
+            row.phone,
+            row.email,
+
+            row.organization,
+            row.organization_other,
+            row.organization_city,
+            row.organization_department,
+
+            row.place_name,
+            row.division_name,
+            row.full_address,
+          ].some(
+            (value) =>
+              String(
+                value ||
+                '',
+              )
+                .toLowerCase()
+                .includes(
+                  query,
+                ),
+          ),
+      );
+    }, [
+      rows,
+      search,
+    ]);
 
   /**
-   * Exporta los registros visibles a Excel.
-   *
-   * IMPORTANTE:
-   * Se utiliza ExcelJS y NO la librería xlsx.
+   * Exportar Excel.
    */
   async function exportExcel() {
-    if (!filtered.length) {
-      setMessage('No hay registros para exportar.');
+    if (
+      !filtered.length
+    ) {
+      setMessage(
+        'No hay registros para exportar.',
+      );
+
       return;
     }
 
     try {
       setMessage('');
 
-      /**
-       * Importación dinámica para evitar cargar
-       * ExcelJS cuando no se está usando.
-       */
-      const ExcelJSModule = await import('exceljs');
+      const ExcelJSModule =
+        await import(
+          'exceljs'
+        );
 
       const ExcelJS =
-        ExcelJSModule.default || ExcelJSModule;
+        ExcelJSModule.default ||
+        ExcelJSModule;
 
-      /**
-       * Transformamos los datos almacenados en
-       * Supabase a columnas entendibles.
-       */
-      const exportRows = filtered.map((row) => ({
-        'Fecha de registro': formatDate(row.created_at),
+      const exportRows =
+        filtered.map(
+          (row) => ({
+            'Fecha de registro':
+              formatDate(
+                row.created_at,
+              ),
 
-        'Nombre completo':
-          row.full_name || '',
+            'Nombre completo':
+              row.full_name ||
+              '',
 
-        'Tipo de documento':
-          row.document_type || '',
+            'Tipo de documento':
+              row.document_type ||
+              '',
 
-        'Número de documento':
-          row.document_number || '',
+            'Número de documento':
+              row.document_number ||
+              '',
 
-        'Celular o teléfono':
-          row.phone || '',
+            'Celular o teléfono':
+              row.phone ||
+              '',
 
-        'Correo electrónico':
-          row.email || '',
+            'Correo electrónico':
+              row.email ||
+              '',
 
-        'Fecha de nacimiento':
-          row.birth_date || '',
+            'Fecha de nacimiento':
+              row.birth_date ||
+              '',
 
-        'Tratamiento de datos autorizado':
-          row.data_processing_authorized
-            ? 'Sí'
-            : 'No',
+            'Dependencia, entidad u organización':
+              row.organization ||
+              '',
 
-        'Comunicaciones comerciales autorizadas':
-          row.commercial_communications_authorized
-            ? 'Sí'
-            : 'No',
+            'Otra organización':
+              row.organization_other ||
+              '',
 
-        'Canal preferido':
-          row.preferred_contact_channel || '',
+            'Ciudad Cámara de Comercio':
+              row.organization_city ||
+              '',
 
-        'Tipo de zona':
-          row.zone_type || '',
+            'Departamento Cámara de Comercio':
+              row.organization_department ||
+              '',
 
-        'Barrio o vereda':
-          row.place_name || '',
+            'Tratamiento de datos autorizado':
+              row.data_processing_authorized
+                ? 'Sí'
+                : 'No',
 
-        'Comuna o corregimiento':
-          row.division_name || '',
+            'Comunicaciones comerciales autorizadas':
+              row.commercial_communications_authorized
+                ? 'Sí'
+                : 'No',
 
-        Dirección:
-          row.full_address || '',
+            'Canal preferido':
+              row.preferred_contact_channel ||
+              '',
 
-        'Tipo de vía':
-          row.road_type || '',
+            'Tipo de zona':
+              row.zone_type ||
+              '',
 
-        'Número de vía':
-          row.road_number || '',
+            'Barrio o vereda':
+              row.place_name ||
+              '',
 
-        Sufijo:
-          row.road_suffix || '',
+            'Comuna o corregimiento':
+              row.division_name ||
+              '',
 
-        'Número siguiente':
-          row.secondary_number || '',
+            Dirección:
+              row.full_address ||
+              '',
 
-        Complemento:
-          row.address_extra || '',
+            'Tipo de vía':
+              row.road_type ||
+              '',
 
-        Ciudad:
-          row.city || '',
+            'Número de vía':
+              row.road_number ||
+              '',
 
-        Departamento:
-          row.department || '',
+            Sufijo:
+              row.road_suffix ||
+              '',
 
-        País:
-          row.country || '',
+            'Número siguiente':
+              row.secondary_number ||
+              '',
 
-        Latitud:
-          row.latitude ?? '',
+            Complemento:
+              row.address_extra ||
+              '',
 
-        Longitud:
-          row.longitude ?? '',
-      }));
+            Ciudad:
+              row.city ||
+              '',
 
-      /**
-       * Creamos el libro de Excel.
-       */
-      const workbook = new ExcelJS.Workbook();
+            Departamento:
+              row.department ||
+              '',
 
-      workbook.creator = 'AKI';
-      workbook.lastModifiedBy = 'AKI';
-      workbook.created = new Date();
-      workbook.modified = new Date();
+            País:
+              row.country ||
+              '',
 
-      /**
-       * Creamos la hoja.
-       */
+            Latitud:
+              row.latitude ??
+              '',
+
+            Longitud:
+              row.longitude ??
+              '',
+          }),
+        );
+
+      const workbook =
+        new ExcelJS
+          .Workbook();
+
+      workbook.creator =
+        'AKI';
+
+      workbook.created =
+        new Date();
+
       const worksheet =
-        workbook.addWorksheet('Registros');
+        workbook.addWorksheet(
+          'Registros',
+        );
 
-      /**
-       * Obtenemos automáticamente los nombres
-       * de las columnas.
-       */
       const headers =
-        Object.keys(exportRows[0]);
+        Object.keys(
+          exportRows[0],
+        );
 
-      worksheet.columns = headers.map(
-        (header) => ({
-          header,
-          key: header,
+      worksheet.columns =
+        headers.map(
+          (header) => ({
+            header,
 
-          /**
-           * Ajustamos automáticamente
-           * el ancho inicial.
-           */
-          width: Math.min(
-            Math.max(
-              header.length + 4,
-              16
-            ),
-            38
-          ),
-        })
+            key:
+              header,
+
+            width:
+              Math.min(
+                Math.max(
+                  header.length +
+                    4,
+                  16,
+                ),
+                40,
+              ),
+          }),
+        );
+
+      exportRows.forEach(
+        (row) => {
+          worksheet.addRow(
+            row,
+          );
+        },
       );
 
       /**
-       * Agregamos las filas.
-       */
-      exportRows.forEach((row) => {
-        worksheet.addRow(row);
-      });
-
-      /**
-       * Congelamos la primera fila.
+       * Congelar encabezado.
        */
       worksheet.views = [
         {
-          state: 'frozen',
-          ySplit: 1,
+          state:
+            'frozen',
+
+          ySplit:
+            1,
         },
       ];
 
       /**
-       * Estilo del encabezado.
+       * Encabezado.
        */
       const headerRow =
-        worksheet.getRow(1);
+        worksheet.getRow(
+          1,
+        );
 
       headerRow.font = {
-        bold: true,
+        bold:
+          true,
+
         color: {
-          argb: 'FFFFFFFF',
+          argb:
+            'FFFFFFFF',
         },
       };
 
       headerRow.fill = {
-        type: 'pattern',
-        pattern: 'solid',
+        type:
+          'pattern',
+
+        pattern:
+          'solid',
+
         fgColor: {
-          argb: 'FF173462',
+          argb:
+            'FF173462',
         },
       };
 
       headerRow.alignment = {
-        vertical: 'middle',
-        horizontal: 'center',
+        vertical:
+          'middle',
+
+        horizontal:
+          'center',
       };
 
-      headerRow.height = 25;
-
       /**
-       * Aplicamos bordes, alineación y
-       * ajuste de texto.
-       */
-      worksheet.eachRow(
-        { includeEmpty: false },
-        (row, rowNumber) => {
-          row.eachCell((cell) => {
-            cell.alignment = {
-              vertical: 'top',
-              horizontal:
-                rowNumber === 1
-                  ? 'center'
-                  : 'left',
-              wrapText: true,
-            };
-
-            cell.border = {
-              top: {
-                style: 'thin',
-                color: {
-                  argb: 'FFD8E1EB',
-                },
-              },
-              left: {
-                style: 'thin',
-                color: {
-                  argb: 'FFD8E1EB',
-                },
-              },
-              bottom: {
-                style: 'thin',
-                color: {
-                  argb: 'FFD8E1EB',
-                },
-              },
-              right: {
-                style: 'thin',
-                color: {
-                  argb: 'FFD8E1EB',
-                },
-              },
-            };
-          });
-        }
-      );
-
-      /**
-       * Autofiltro.
+       * Filtro.
        */
       worksheet.autoFilter = {
         from: {
           row: 1,
           column: 1,
         },
+
         to: {
           row: 1,
-          column: headers.length,
+          column:
+            headers.length,
         },
       };
 
       /**
-       * Generamos el archivo XLSX en memoria.
+       * Ajustar texto.
        */
-      const buffer =
-        await workbook.xlsx.writeBuffer();
-
-      /**
-       * Convertimos el contenido en Blob.
-       */
-      const blob = new Blob(
-        [buffer],
+      worksheet.eachRow(
         {
-          type:
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        }
+          includeEmpty:
+            false,
+        },
+        (
+          row,
+          rowNumber,
+        ) => {
+          row.eachCell(
+            (cell) => {
+              cell.alignment = {
+                vertical:
+                  'top',
+
+                horizontal:
+                  rowNumber ===
+                  1
+                    ? 'center'
+                    : 'left',
+
+                wrapText:
+                  true,
+              };
+            },
+          );
+        },
       );
 
-      /**
-       * Creamos una URL temporal.
-       */
+      const buffer =
+        await workbook.xlsx
+          .writeBuffer();
+
+      const blob =
+        new Blob(
+          [
+            buffer,
+          ],
+          {
+            type:
+              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          },
+        );
+
       const url =
-        URL.createObjectURL(blob);
+        URL.createObjectURL(
+          blob,
+        );
 
-      /**
-       * Nombre del archivo con fecha.
-       */
-      const currentDate =
-        new Date()
-          .toISOString()
-          .slice(0, 10);
-
-      const fileName =
-        `registros-colacteos-${currentDate}.xlsx`;
-
-      /**
-       * Forzamos la descarga desde el navegador.
-       */
       const link =
-        document.createElement('a');
+        document.createElement(
+          'a',
+        );
 
-      link.href = url;
-      link.download = fileName;
+      link.href =
+        url;
 
-      document.body.appendChild(link);
+      link.download =
+        `registros-colacteos-${new Date()
+          .toISOString()
+          .slice(
+            0,
+            10,
+          )}.xlsx`;
+
+      document.body
+        .appendChild(
+          link,
+        );
 
       link.click();
 
       link.remove();
 
-      /**
-       * Liberamos la URL temporal.
-       */
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(
+        url,
+      );
     } catch (error) {
       console.error(
         'Excel export error:',
-        error
+        error,
       );
 
       setMessage(
-        'No fue posible generar el archivo Excel. Revisa la consola para obtener más información.'
+        'No fue posible generar el archivo Excel.',
       );
     }
   }
 
   /**
-   * Pantalla de carga.
+   * Cargando.
    */
   if (loading) {
     return (
       <Panel>
-        <div className="flex min-h-[250px] items-center justify-center">
-          <div className="text-center">
-            <div
-              className="
-                mx-auto
-                mb-4
-                h-10
-                w-10
-                animate-spin
-                rounded-full
-                border-4
-                border-white/30
-                border-t-white
-              "
-            />
-
-            <p className="font-semibold text-white">
-              Cargando...
-            </p>
-          </div>
-        </div>
+        <p className="text-white">
+          Cargando...
+        </p>
       </Panel>
     );
   }
 
   /**
-   * Pantalla de login.
+   * Login.
    */
-  if (!session || !isAdmin) {
+  if (
+    !session ||
+    !isAdmin
+  ) {
     return (
       <Panel>
         <div className="mx-auto max-w-md">
-          <h1
-            className="
-              mb-2
-              text-3xl
-              font-extrabold
-              text-white
-            "
-          >
+          <h1 className="mb-2 text-3xl font-extrabold text-white">
             Administración
           </h1>
 
-          <p
-            className="
-              mb-6
-              text-[#e5ebff]
-            "
-          >
-            Inicia sesión con una cuenta
-            autorizada
+          <p className="mb-6 text-[#e5ebff]">
+            Inicia sesión con una cuenta autorizada en Supabase
+            para consultar y exportar los registros.
           </p>
 
-          {!supabase ? null : !session ? (
-            <form
-              onSubmit={signIn}
-              className="space-y-4"
-            >
-              <label
-                className="
-                  block
-                  font-bold
-                  text-white
-                "
-              >
-                Correo
-
-                <input
-                  type="email"
-                  className="colacteos-input"
-                  value={email}
-                  onChange={(event) =>
-                    setEmail(
-                      event.target.value
-                    )
+          {!supabase
+            ? null
+            : !session
+              ? (
+                <form
+                  onSubmit={
+                    signIn
                   }
-                  required
-                  autoComplete="email"
-                  placeholder="administrador@correo.com"
-                />
-              </label>
+                  className="space-y-4"
+                >
+                  <label className="block font-bold text-white">
+                    Correo
 
-              <label
-                className="
-                  block
-                  font-bold
-                  text-white
-                "
-              >
-                Contraseña
+                    <input
+                      type="email"
+                      className="colacteos-input"
+                      value={
+                        email
+                      }
+                      onChange={
+                        (event) =>
+                          setEmail(
+                            event
+                              .target
+                              .value,
+                          )
+                      }
+                      required
+                      autoComplete="email"
+                    />
+                  </label>
 
-                <input
-                  type="password"
-                  className="colacteos-input"
-                  value={password}
-                  onChange={(event) =>
-                    setPassword(
-                      event.target.value
-                    )
+                  <label className="block font-bold text-white">
+                    Contraseña
+
+                    <input
+                      type="password"
+                      className="colacteos-input"
+                      value={
+                        password
+                      }
+                      onChange={
+                        (event) =>
+                          setPassword(
+                            event
+                              .target
+                              .value,
+                          )
+                      }
+                      required
+                      autoComplete="current-password"
+                    />
+                  </label>
+
+                  <button
+                    type="submit"
+                    className="w-full rounded-lg bg-[#0d8eea] px-5 py-3 font-bold text-white hover:bg-[#34a8f2]"
+                  >
+                    Ingresar
+                  </button>
+                </form>
+              )
+              : (
+                <button
+                  type="button"
+                  onClick={
+                    signOut
                   }
-                  required
-                  autoComplete="current-password"
-                  placeholder="••••••••"
-                />
-              </label>
-
-              <button
-                type="submit"
-                className="
-                  w-full
-                  rounded-lg
-                  bg-[#0d8eea]
-                  px-5
-                  py-3
-                  font-bold
-                  text-white
-                  transition
-                  hover:bg-[#34a8f2]
-                "
-              >
-                Ingresar
-              </button>
-            </form>
-          ) : (
-            <button
-              type="button"
-              onClick={signOut}
-              className="
-                rounded-lg
-                bg-[#0d8eea]
-                px-5
-                py-3
-                font-bold
-                text-white
-              "
-            >
-              Cerrar sesión
-            </button>
-          )}
+                  className="rounded-lg bg-[#0d8eea] px-5 py-3 font-bold text-white"
+                >
+                  Cerrar sesión
+                </button>
+              )}
 
           {message && (
             <div
               role="alert"
-              className="
-                mt-4
-                rounded-lg
-                bg-[#fff3cd]
-                p-3
-                font-semibold
-                text-[#542d00]
-              "
+              className="mt-4 rounded-lg bg-[#fff3cd] p-3 font-semibold text-[#542d00]"
             >
               {message}
             </div>
@@ -709,132 +856,70 @@ export default function AdminDashboard() {
   }
 
   /**
-   * Dashboard administrativo.
+   * Dashboard.
    */
   return (
     <Panel>
       <div className="flex flex-col gap-5">
-        {/* Encabezado */}
-        <div
-          className="
-            flex
-            flex-wrap
-            items-center
-            justify-between
-            gap-3
-          "
-        >
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1
-              className="
-                text-3xl
-                font-extrabold
-                text-white
-              "
-            >
+            <h1 className="text-3xl font-extrabold text-white">
               Registros de beneficios
             </h1>
 
-            <p
-              className="
-                mt-1
-                text-[#e5ebff]
-              "
-            >
+            <p className="mt-1 text-[#e5ebff]">
               {filtered.length}{' '}
               registro(s) visibles.
             </p>
 
             {search && (
-              <p
-                className="
-                  mt-1
-                  text-sm
-                  text-[#cdd8f5]
-                "
-              >
+              <p className="mt-1 text-sm text-[#cdd8f5]">
                 Total almacenado:{' '}
                 {rows.length}
               </p>
             )}
           </div>
 
-          {/* Acciones */}
-          <div
-            className="
-              flex
-              flex-wrap
-              gap-2
-            "
-          >
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={loadRows}
-              className="
-                rounded-lg
-                border
-                border-white/40
-                px-4
-                py-2
-                font-bold
-                text-white
-                transition
-                hover:bg-white/10
-              "
+              onClick={
+                loadRows
+              }
+              className="rounded-lg border border-white/40 px-4 py-2 font-bold text-white hover:bg-white/10"
             >
               Actualizar
             </button>
 
             <button
               type="button"
-              onClick={exportExcel}
-              disabled={!filtered.length}
-              className="
-                rounded-lg
-                bg-[#0d8eea]
-                px-4
-                py-2
-                font-bold
-                text-white
-                transition
-                hover:bg-[#34a8f2]
-                disabled:cursor-not-allowed
-                disabled:opacity-50
-              "
+              onClick={
+                exportExcel
+              }
+              disabled={
+                !filtered.length
+              }
+              className="rounded-lg bg-[#0d8eea] px-4 py-2 font-bold text-white hover:bg-[#34a8f2] disabled:cursor-not-allowed disabled:opacity-50"
             >
               Exportar Excel
             </button>
 
             <button
               type="button"
-              onClick={signOut}
-              className="
-                rounded-lg
-                border
-                border-white/40
-                px-4
-                py-2
-                font-bold
-                text-white
-                transition
-                hover:bg-white/10
-              "
+              onClick={
+                signOut
+              }
+              className="rounded-lg border border-white/40 px-4 py-2 font-bold text-white hover:bg-white/10"
             >
               Salir
             </button>
           </div>
         </div>
 
-        {/* Buscador */}
         <div>
           <label
             htmlFor="admin-search"
-            className="
-              mb-2
-              block
-              font-bold
-              text-white
-            "
+            className="mb-2 block font-bold text-white"
           >
             Buscar registros
           </label>
@@ -843,56 +928,37 @@ export default function AdminDashboard() {
             id="admin-search"
             type="search"
             className="colacteos-input"
-            value={search}
-            onChange={(event) =>
-              setSearch(event.target.value)
+            value={
+              search
             }
-            placeholder="Buscar por nombre, documento, teléfono, correo, barrio/vereda o dirección"
+            onChange={
+              (event) =>
+                setSearch(
+                  event
+                    .target
+                    .value,
+                )
+            }
+            placeholder="Buscar por nombre, documento, teléfono, correo, organización, ciudad o barrio/vereda"
           />
         </div>
 
-        {/* Mensajes */}
         {message && (
           <div
             role="alert"
-            className="
-              rounded-lg
-              bg-[#fff3cd]
-              p-3
-              font-semibold
-              text-[#542d00]
-            "
+            className="rounded-lg bg-[#fff3cd] p-3 font-semibold text-[#542d00]"
           >
             {message}
           </div>
         )}
 
-        {/* Tabla */}
-        <div
-          className="
-            overflow-x-auto
-            rounded-xl
-            bg-white
-            shadow-lg
-          "
-        >
-          <table
-            className="
-              w-full
-              min-w-[1150px]
-              text-left
-              text-sm
-              text-[#173462]
-            "
-          >
-            <thead
-              className="
-                bg-[#d8e8f5]
-                text-[#172d63]
-              "
-            >
+        <div className="overflow-x-auto rounded-xl bg-white shadow-lg">
+          <table className="w-full min-w-[1400px] text-left text-sm text-[#173462]">
+            <thead className="bg-[#d8e8f5] text-[#172d63]">
               <tr>
-                <Th>Fecha</Th>
+                <Th>
+                  Fecha
+                </Th>
 
                 <Th>
                   Nombre
@@ -911,6 +977,14 @@ export default function AdminDashboard() {
                 </Th>
 
                 <Th>
+                  Dependencia / entidad / organización
+                </Th>
+
+                <Th>
+                  Detalle organización
+                </Th>
+
+                <Th>
                   Zona
                 </Th>
 
@@ -919,129 +993,139 @@ export default function AdminDashboard() {
                 </Th>
 
                 <Th>
-                  Comunicaciones
+                  Comercial
                 </Th>
               </tr>
             </thead>
 
             <tbody>
-              {filtered.map((row) => (
-                <tr
-                  key={row.id}
-                  className="
-                    border-t
-                    border-slate-200
-                    align-top
-                    transition
-                    hover:bg-slate-50
-                  "
-                >
-                  <Td>
-                    {formatDate(
-                      row.created_at
-                    )}
-                  </Td>
+              {filtered.map(
+                (row) => (
+                  <tr
+                    key={
+                      row.id
+                    }
+                    className="border-t border-slate-200 align-top transition hover:bg-slate-50"
+                  >
+                    <Td>
+                      {formatDate(
+                        row.created_at,
+                      )}
+                    </Td>
 
-                  <Td>
-                    <span className="font-semibold">
-                      {row.full_name}
-                    </span>
-                  </Td>
+                    <Td>
+                      <span className="font-semibold">
+                        {row.full_name}
+                      </span>
+                    </Td>
 
-                  <Td>
-                    {row.document_type}
+                    <Td>
+                      {row.document_type}
 
-                    <br />
+                      <br />
 
-                    <span className="font-semibold">
-                      {
-                        row.document_number
-                      }
-                    </span>
-                  </Td>
+                      <span className="font-semibold">
+                        {row.document_number}
+                      </span>
+                    </Td>
 
-                  <Td>
-                    {row.phone}
-                  </Td>
+                    <Td>
+                      {row.phone}
+                    </Td>
 
-                  <Td>
-                    {row.email}
-                  </Td>
+                    <Td>
+                      {row.email}
+                    </Td>
 
-                  <Td>
-                    <span className="font-semibold">
-                      {row.zone_type}
-                    </span>
+                    <Td>
+                      {row.organization ||
+                        '—'}
+                    </Td>
 
-                    {row.place_name
-                      ? (
+                    <Td>
+                      {row.organization ===
+                      'Cámara de Comercio'
+                        ? `${
+                            row.organization_city ||
+                            ''
+                          }${
+                            row.organization_city &&
+                            row.organization_department
+                              ? ' - '
+                              : ''
+                          }${
+                            row.organization_department ||
+                            ''
+                          }`
+                        : row.organization ===
+                            'Otra organización / No aplica'
+                          ? (
+                              row.organization_other ||
+                              'No especificada'
+                            )
+                          : '—'}
+                    </Td>
+
+                    <Td>
+                      <span className="font-semibold">
+                        {row.zone_type}
+                      </span>
+
+                      {row.place_name && (
                         <>
                           <br />
 
-                          {
-                            row.place_name
-                          }
+                          {row.place_name}
                         </>
-                      )
-                      : null}
+                      )}
 
-                    {row.division_name
-                      ? (
+                      {row.division_name && (
                         <>
                           <br />
 
                           <span className="text-xs text-slate-500">
-                            {
-                              row.division_name
-                            }
+                            {row.division_name}
                           </span>
                         </>
-                      )
-                      : null}
-                  </Td>
+                      )}
+                    </Td>
 
-                  <Td>
-                    {row.full_address}
-                  </Td>
+                    <Td>
+                      {row.full_address}
+                    </Td>
 
-                  <Td>
-                    {row.commercial_communications_authorized
-                      ? (
-                        <>
-                          Sí
+                    <Td>
+                      {row.commercial_communications_authorized
+                        ? (
+                            <>
+                              Sí
 
-                          {row.preferred_contact_channel
-                            ? (
-                              <>
-                                <br />
+                              {row.preferred_contact_channel && (
+                                <>
+                                  <br />
 
-                                <span className="text-xs text-slate-500">
-                                  {
-                                    row.preferred_contact_channel
-                                  }
-                                </span>
-                              </>
-                            )
-                            : null}
-                        </>
-                      )
-                      : 'No'}
-                  </Td>
-                </tr>
-              ))}
+                                  <span className="text-xs text-slate-500">
+                                    {row.preferred_contact_channel}
+                                  </span>
+                                </>
+                              )}
+                            </>
+                          )
+                        : 'No'}
+                    </Td>
+                  </tr>
+                ),
+              )}
 
               {!filtered.length && (
                 <tr>
-                  <Td colSpan={8}>
-                    <div
-                      className="
-                        py-10
-                        text-center
-                        text-slate-500
-                      "
-                    >
-                      No hay registros para
-                      mostrar.
+                  <Td
+                    colSpan={
+                      10
+                    }
+                  >
+                    <div className="py-10 text-center text-slate-500">
+                      No hay registros para mostrar.
                     </div>
                   </Td>
                 </tr>
@@ -1054,85 +1138,69 @@ export default function AdminDashboard() {
   );
 }
 
-/**
- * Contenedor visual principal.
- */
-function Panel({ children }) {
+function Panel({
+  children,
+}) {
   return (
-    <section
-      className="
-        rounded-2xl
-        border
-        border-white/20
-        bg-[rgba(17,33,89,.86)]
-        p-5
-        shadow-[0_18px_40px_rgba(0,0,0,.2)]
-        md:p-8
-      "
-    >
+    <section className="rounded-2xl border border-white/20 bg-[rgba(17,33,89,.86)] p-5 shadow-[0_18px_40px_rgba(0,0,0,.2)] md:p-8">
       {children}
     </section>
   );
 }
 
-/**
- * Encabezado reutilizable de la tabla.
- */
-function Th({ children }) {
+function Th({
+  children,
+}) {
   return (
-    <th
-      className="
-        whitespace-nowrap
-        px-4
-        py-3
-        font-extrabold
-      "
-    >
+    <th className="whitespace-nowrap px-4 py-3 font-extrabold">
       {children}
     </th>
   );
 }
 
-/**
- * Celda reutilizable de la tabla.
- */
 function Td({
   children,
   colSpan,
 }) {
   return (
     <td
-      colSpan={colSpan}
-      className="
-        px-4
-        py-3
-      "
+      colSpan={
+        colSpan
+      }
+      className="px-4 py-3"
     >
       {children}
     </td>
   );
 }
 
-/**
- * Convierte fechas UTC al horario colombiano.
- */
-function formatDate(value) {
+function formatDate(
+  value,
+) {
   if (!value) {
     return '';
   }
 
   try {
-    return new Intl.DateTimeFormat(
-      'es-CO',
-      {
-        dateStyle: 'short',
-        timeStyle: 'short',
-        timeZone:
-          'America/Bogota',
-      }
-    ).format(
-      new Date(value)
-    );
+    return new Intl
+      .DateTimeFormat(
+        'es-CO',
+        {
+          dateStyle:
+            'short',
+
+          timeStyle:
+            'short',
+
+          timeZone:
+            'America/Bogota',
+        },
+      )
+      .format(
+        new Date(
+          value,
+        ),
+      );
   } catch {
     return value;
   }
